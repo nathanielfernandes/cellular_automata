@@ -41,7 +41,7 @@ impl Cell {
         self.identity.draw(x, y, *self)
     }
 
-    pub fn debug_draw(&self, x: i32, y: i32, tick: bool) {
+    pub fn debug_draw(&self, x: i32, y: i32) {
         if !self.active {
             self.identity.draw(x, y, *self)
         } else {
@@ -136,5 +136,15 @@ impl CT {
 
     pub fn is_not(&self, cell_type: &CT) -> bool {
         self != cell_type
+    }
+
+    pub fn to_str(&self) -> &str {
+        match self {
+            CT::Air => "air",
+            CT::Bedrock => "bedrock",
+            CT::Sand => "sand",
+            CT::Water => "water",
+            CT::Smoke => "smoke",
+        }
     }
 }

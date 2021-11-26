@@ -21,6 +21,22 @@ fn window_conf() -> Conf {
     }
 }
 
+fn change_selected(selected: CT) -> CT {
+    if is_key_down(KeyCode::Key1) {
+        return CT::Sand;
+    } else if is_key_down(KeyCode::Key2) {
+        return CT::Water;
+    } else if is_key_down(KeyCode::Key3) {
+        return CT::Bedrock;
+    } else if is_key_down(KeyCode::Key4) {
+        return CT::Smoke;
+    } else if is_key_down(KeyCode::Key5) {
+        return CT::Air;
+    }
+
+    selected
+}
+
 #[macroquad::main(window_conf)]
 async fn main() {
     let (sw, sh) = (screen_width() / SCALE, screen_height() / SCALE);
@@ -40,9 +56,12 @@ async fn main() {
     };
 
     // brush radius
-    let r = 5;
+    let r = 3;
+
+    let mut selected = CT::Sand;
 
     loop {
+        selected = change_selected(selected);
         if is_mouse_button_down(MouseButton::Left) {
             let (mouse_x, mouse_y) = mouse_position();
             let (mx, my) = (
@@ -59,17 +78,8 @@ async fn main() {
                                 y,
                                 world: &mut world,
                             };
-                            if is_key_down(KeyCode::Key1) {
-                                world.cells[i] = BEDROCK;
-                            } else if is_key_down(KeyCode::Key2) {
-                                cc.set_rel_cell(Cell::new(CT::Water, false, true), 0, 0);
-                            } else if is_key_down(KeyCode::Key3) {
-                                cc.set_rel_cell(AIR, 0, 0);
-                            } else if is_key_down(KeyCode::Key4) {
-                                cc.set_rel_cell(Cell::new(CT::Smoke, false, true), 0, 0);
-                            } else {
-                                cc.set_rel_cell(Cell::new(CT::Sand, false, true), 0, 0);
-                            }
+
+                            cc.set_rel_cell(Cell::new(selected, false, true), 0, 0);
                         }
                     }
                 }
@@ -79,8 +89,13 @@ async fn main() {
         clear_background(SKY);
 
         world.tick();
-        let fps = get_fps();
-        draw_text(&format!("fps: {}", fps), 2.0, 20.0, 30.0, GREEN);
+        draw_text(
+            &format!("selected: {}      fps: {}", selected.to_str(), get_fps()),
+            2.0,
+            20.0,
+            30.0,
+            GREEN,
+        );
 
         next_frame().await
     }

@@ -29,7 +29,7 @@ impl World {
                     if cell.active && self.tick != cell.tick && cell.identity != CT::Bedrock {
                         cell.step(Controller { x, y, world: self });
                     }
-                    // cell.debug_draw(x, y, self.tick);
+                    // cell.debug_draw(x, y);
                     cell.draw(x, y);
                 }
             });
