@@ -12,6 +12,10 @@ pub fn rand_int(low: i32, high: i32) -> i32 {
     rand::gen_range(low, high)
 }
 
+pub fn inertial_res_check(i: f32) -> bool {
+    i < rand::gen_range(0.0, 1.0)
+}
+
 pub fn random_dir() -> i32 {
     if rand::gen_range(0, 500) % 2 == 0 {
         -1

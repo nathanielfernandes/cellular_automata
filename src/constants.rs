@@ -33,24 +33,28 @@ pub const WATER_COLOR: Color = Color {
 };
 
 pub const SMOKE_COLOR: Color = Color {
-    r: 74.0 / 255.0,
-    g: 74.0 / 255.0,
-    b: 74.0 / 255.0,
+    r: 80.0 / 255.0,
+    g: 80.0 / 255.0,
+    b: 80.0 / 255.0,
     a: 1.0,
 };
 
 pub static AIR: Cell = Cell {
     identity: CT::Air,
     health: 0,
+    inertial_res: 0.0,
     variation: 0.0,
     tick: false,
     active: false,
+    has_moved: true,
 };
 
 pub static BEDROCK: Cell = Cell {
     identity: CT::Bedrock,
     health: 255,
+    inertial_res: 1.0,
     variation: 0.0,
     tick: false,
     active: false,
+    has_moved: true,
 };
