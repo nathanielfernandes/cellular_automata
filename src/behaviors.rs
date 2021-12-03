@@ -23,25 +23,28 @@ use macroquad::prelude::*;
 // }
 // }
 
+pub fn lava_step(cell: Cell, mut ctrl: Controller) -> bool {
+    if chance(40) && ctrl.get_rel_cell(0, -1).identity == CT::Air {
+        ctrl.set_rel_cell(Cell::default(CT::Fire), 0, -1);
+    }
+
+    liquid_step(cell, ctrl)
+}
+
 pub fn apply_heat(cell: Cell, mut ctrl: Controller) -> Controller {
+    if cell.identity == CT::Air {
+        return ctrl;
+    }
+
     let rate = (1.0 / ctrl.world.tps) as f32;
     let mut heat = |x: i32, y: i32| {
         let og_cell = ctrl.get_rel_cell(0, 0);
         let c = ctrl.get_rel_cell(x, y);
         //c.identity != cell.identity &&
-        if og_cell.heat > c.heat && c.conductivity > 0.0 && !c.identity.is_static() {
-            let cond = cell.conductivity * c.conductivity;
-
-            // if og_cell.identity != c.identity {
-            //     cell.conductivity * c.conductivity
-            // } else {
-            //     c.conductivity
-            // };
-
-            let transfered = (og_cell.heat * cond * rate) / 8.0;
-
-            // c.heat += transfered;
-            // c.active = true;
+        if og_cell.heat > c.heat && c.conductivity > 0.0 && !c.is_static() && c.identity != CT::Air
+        {
+            let cond = cell.conductivity.min(c.conductivity);
+            let transfered = (og_cell.heat * cond * rate) / 4.0;
             ctrl.set_rel_cell_no_tick(
                 Cell {
                     heat: og_cell.heat - transfered,
@@ -67,10 +70,10 @@ pub fn apply_heat(cell: Cell, mut ctrl: Controller) -> Controller {
     heat(-1, 0);
     heat(1, 0);
 
-    heat(-1, -1);
-    heat(-1, 1);
-    heat(1, -1);
-    heat(1, 1);
+    // heat(-1, -1);
+    // heat(-1, 1);
+    // heat(1, -1);
+    // heat(1, 1);
     // }
 
     ctrl
@@ -78,7 +81,6 @@ pub fn apply_heat(cell: Cell, mut ctrl: Controller) -> Controller {
 
 pub fn solid_step(cell: Cell, mut ctrl: Controller) -> bool {
     // ctrl = apply_heat(cell, ctrl);
-
     if cell.identity == CT::Air {
         let mut cell = ctrl.get_rel_cell(0, 0);
 
@@ -89,10 +91,9 @@ pub fn solid_step(cell: Cell, mut ctrl: Controller) -> bool {
         }
 
         let above = ctrl.get_rel_cell(0, -1);
-
         if above.identity == CT::Air && above.heat < cell.heat {
-            ctrl.set_rel_cell(cell, 0, -1);
-            ctrl.set_rel_cell(above, 0, 0);
+            ctrl.set_rel_cell_no_tick(cell, 0, -1);
+            ctrl.set_rel_cell_no_tick(above, 0, 0);
             return true;
         }
 
@@ -100,8 +101,8 @@ pub fn solid_step(cell: Cell, mut ctrl: Controller) -> bool {
         let side = ctrl.get_rel_cell(dir, 0);
 
         if side.identity == CT::Air && side.heat < cell.heat {
-            ctrl.set_rel_cell(cell, dir, 0);
-            ctrl.set_rel_cell(side, 0, 0);
+            ctrl.set_rel_cell_no_tick(cell, dir, 0);
+            ctrl.set_rel_cell_no_tick(side, 0, 0);
             return true;
         }
     }
@@ -117,16 +118,16 @@ pub fn falling_solid_step(cell: Cell, mut ctrl: Controller) -> bool {
     // let mut ctrl = velocity_step(cell, ctrl);
 
     let below = ctrl.get_rel_cell(0, 1);
-    if below.identity.is_gas() {
+    if below.is_gas() {
         ctrl.set_rel_cell(below, 0, 0);
         ctrl.set_rel_cell(cell, 0, 1);
         return true;
     };
 
-    if below.identity.is_liquid() {
+    if below.is_liquid() {
         let dir = random_dir();
         let c = ctrl.get_rel_cell(dir, 0);
-        if c.identity.is_gas() {
+        if c.is_gas() {
             ctrl.set_rel_cell(c, 0, 0);
             ctrl.set_rel_cell(below, dir, 0);
             ctrl.set_rel_cell(cell, 0, 1);
@@ -141,7 +142,7 @@ pub fn falling_solid_step(cell: Cell, mut ctrl: Controller) -> bool {
     if inertial_res_check(cell.inertial_res) {
         let dir = random_dir();
         let c = ctrl.get_rel_cell(dir, 1);
-        if c.identity.is_gas() {
+        if c.is_gas() {
             ctrl.set_rel_cell(c, 0, 0);
             ctrl.set_rel_cell(cell, dir, 1);
 
@@ -164,7 +165,7 @@ pub fn liquid_step(cell: Cell, mut ctrl: Controller) -> bool {
 
     let mut wet = |x: i32, y: i32| {
         let to_wet = ctrl.get_rel_cell(x, y);
-        if !to_wet.is_wet && to_wet.identity.is_solid() {
+        if !to_wet.is_wet && to_wet.is_solid() {
             let (color, flammability, health) =
                 cell.identity
                     .wet(to_wet.color, to_wet.flammability, to_wet.health);
@@ -190,7 +191,7 @@ pub fn liquid_step(cell: Cell, mut ctrl: Controller) -> bool {
     // let mut ctrl = velocity_step(cell, ctrl);
 
     let below = ctrl.get_rel_cell(0, 1);
-    if !below.identity.is_solid() && below.mass < cell.mass {
+    if !below.is_solid() && below.mass < cell.mass {
         ctrl.set_rel_cell(below, 0, 0);
         ctrl.set_rel_cell(cell, 0, 1);
         return true;
@@ -198,7 +199,7 @@ pub fn liquid_step(cell: Cell, mut ctrl: Controller) -> bool {
 
     let mut water_check = |dir: i32| {
         let c = ctrl.get_rel_cell(dir, 1);
-        if !c.identity.is_solid() && c.mass < cell.mass {
+        if !c.is_solid() && c.mass < cell.mass {
             ctrl.set_rel_cell(c, 0, 0);
             ctrl.set_rel_cell(cell, dir, 1);
             return true;
@@ -208,10 +209,10 @@ pub fn liquid_step(cell: Cell, mut ctrl: Controller) -> bool {
                 let spot = i * dir;
 
                 let cc = ctrl.get_rel_cell(spot, 0);
-                if (cc.identity.is_liquid() || cc.identity == CT::Air) && cc.mass <= cell.mass {
+                if (cc.is_liquid() || cc.identity == CT::Air) && cc.mass <= cell.mass {
                     found = spot;
                     let c1 = ctrl.get_rel_cell(spot, 1);
-                    if !c1.identity.is_solid() && c1.mass < cell.mass {
+                    if !c1.is_solid() && c1.mass < cell.mass {
                         break;
                     }
                 } else {
@@ -240,7 +241,7 @@ pub fn liquid_step(cell: Cell, mut ctrl: Controller) -> bool {
         return true;
     }
 
-    // if below.identity.is_solid() {
+    // if below.is_solid() {
     ctrl.sleep_cell();
     // }
 
@@ -273,17 +274,14 @@ pub fn gas_step(cell: Cell, mut ctrl: Controller) -> bool {
     }
 
     let above_d = ctrl.get_rel_cell(d, v);
-    if !above_d.identity.is_solid()
-        && above_d.identity.is_gas()
-        && above_d.identity != cell.identity
-    {
+    if !above_d.is_solid() && above_d.is_gas() && above_d.identity != cell.identity {
         ctrl.set_rel_cell(above_d, 0, 0);
         ctrl.set_rel_cell(c, d, v);
         return true;
     }
 
     let above = ctrl.get_rel_cell(0, v);
-    if !above.identity.is_solid() && above_d.identity.is_gas() && above.identity != cell.identity {
+    if !above.is_solid() && above_d.is_gas() && above.identity != cell.identity {
         ctrl.set_rel_cell(above, 0, 0);
         ctrl.set_rel_cell(c, 0, v);
         return true;
@@ -291,7 +289,7 @@ pub fn gas_step(cell: Cell, mut ctrl: Controller) -> bool {
 
     let d = random_dir();
     let side = ctrl.get_rel_cell(d, 0);
-    if !side.identity.is_solid() {
+    if !side.is_solid() {
         ctrl.set_rel_cell(side, 0, 0);
         ctrl.set_rel_cell(c, d, 0);
         return true;
@@ -321,7 +319,6 @@ pub fn fire_step(cell: Cell, mut ctrl: Controller) -> bool {
         c = Cell {
             identity: CT::Smoke,
             health: 100.0,
-            variation: CT::Smoke.get_varation(),
             tick: cell.tick,
             heat: 80.0,
             ..Cell::default(CT::Smoke)
@@ -330,7 +327,10 @@ pub fn fire_step(cell: Cell, mut ctrl: Controller) -> bool {
 
     let mut spread = |x: i32, y: i32| {
         let on_fire = ctrl.get_rel_cell(x, y);
-        if on_fire.identity != CT::Smoke && flammability_check(on_fire.flammability) {
+        if on_fire.identity != CT::Smoke
+            && on_fire.identity != CT::Fire
+            && flammability_check(on_fire.flammability)
+        {
             if on_fire.health > 0.0 {
                 ctrl.set_rel_cell_no_tick(
                     Cell {
@@ -400,7 +400,7 @@ pub fn fire_step(cell: Cell, mut ctrl: Controller) -> bool {
         return false;
     }
 
-    if !a.identity.is_immovable() && a.flammability == 0.0 {
+    if a.identity != CT::Air && a.flammability == 0.0 {
         ctrl.set_rel_cell(
             Cell {
                 identity: CT::Smoke,
@@ -416,31 +416,31 @@ pub fn fire_step(cell: Cell, mut ctrl: Controller) -> bool {
         return true;
     }
 
-    if !a1.identity.is_immovable() && a1.flammability == 0.0 {
-        ctrl.set_rel_cell(
-            Cell {
-                identity: CT::Smoke,
-                health: 100.0,
-                variation: CT::Smoke.get_varation(),
-                tick: cell.tick,
-                heat: 80.0,
-                ..Cell::default(CT::Smoke)
-            },
-            0,
-            0,
-        );
-        return true;
-    }
+    // if a1.identity != CT::Air && a1.flammability == 0.0 {
+    //     ctrl.set_rel_cell(
+    //         Cell {
+    //             identity: CT::Smoke,
+    //             health: 100.0,
+    //             variation: CT::Smoke.get_varation(),
+    //             tick: cell.tick,
+    //             heat: 80.0,
+    //             ..Cell::default(CT::Smoke)
+    //         },
+    //         0,
+    //         0,
+    //     );
+    //     return true;
+    // }
 
     let above_d = ctrl.get_rel_cell(d, v);
-    if !above_d.identity.is_solid() && above_d.identity.is_gas() && above_d.identity != CT::Smoke {
+    if !above_d.is_solid() && above_d.is_gas() && above_d.identity != CT::Smoke {
         ctrl.set_rel_cell(above_d, 0, 0);
         ctrl.set_rel_cell(c, d, v);
         return true;
     }
 
     let above = ctrl.get_rel_cell(0, v);
-    if !above.identity.is_solid() && above.identity.is_gas() && above.identity != CT::Smoke {
+    if !above.is_solid() && above.is_gas() && above.identity != CT::Smoke {
         ctrl.set_rel_cell(above, 0, 0);
         ctrl.set_rel_cell(c, 0, v);
         return true;
@@ -448,7 +448,7 @@ pub fn fire_step(cell: Cell, mut ctrl: Controller) -> bool {
 
     let d = random_dir();
     let side = ctrl.get_rel_cell(d, 0);
-    if !side.identity.is_solid() {
+    if !side.is_solid() {
         ctrl.set_rel_cell(side, 0, 0);
         ctrl.set_rel_cell(c, d, 0);
         return true;
@@ -457,65 +457,65 @@ pub fn fire_step(cell: Cell, mut ctrl: Controller) -> bool {
     return false;
 }
 
-pub fn life_step(cell: Cell, mut ctrl: Controller) -> bool {
-    let mut neighbours = 0;
+// pub fn life_step(cell: Cell, mut ctrl: Controller) -> bool {
+//     let mut neighbours = 0;
 
-    if ctrl.get_rel_cell(0, -1).identity == CT::Life {
-        neighbours += 1;
-    }
-    if ctrl.get_rel_cell(0, 1).identity == CT::Life {
-        neighbours += 1;
-    }
-    if ctrl.get_rel_cell(-1, 0).identity == CT::Life {
-        neighbours += 1;
-    }
-    if ctrl.get_rel_cell(1, 0).identity == CT::Life {
-        neighbours += 1;
-    }
+//     if ctrl.get_rel_cell(0, -1).identity == CT::Life {
+//         neighbours += 1;
+//     }
+//     if ctrl.get_rel_cell(0, 1).identity == CT::Life {
+//         neighbours += 1;
+//     }
+//     if ctrl.get_rel_cell(-1, 0).identity == CT::Life {
+//         neighbours += 1;
+//     }
+//     if ctrl.get_rel_cell(1, 0).identity == CT::Life {
+//         neighbours += 1;
+//     }
 
-    if ctrl.get_rel_cell(-1, -1).identity == CT::Life {
-        neighbours += 1;
-    }
-    if ctrl.get_rel_cell(1, -1).identity == CT::Life {
-        neighbours += 1;
-    }
-    if ctrl.get_rel_cell(-1, 1).identity == CT::Life {
-        neighbours += 1;
-    }
-    if ctrl.get_rel_cell(1, 1).identity == CT::Life {
-        neighbours += 1;
-    }
+//     if ctrl.get_rel_cell(-1, -1).identity == CT::Life {
+//         neighbours += 1;
+//     }
+//     if ctrl.get_rel_cell(1, -1).identity == CT::Life {
+//         neighbours += 1;
+//     }
+//     if ctrl.get_rel_cell(-1, 1).identity == CT::Life {
+//         neighbours += 1;
+//     }
+//     if ctrl.get_rel_cell(1, 1).identity == CT::Life {
+//         neighbours += 1;
+//     }
 
-    if cell.identity == CT::Life {
-        // Rule 1: Any live cell with fewer than two live neighbours dies, as if caused by underpopulation.
-        if neighbours < 2 {
-            ctrl.set_rel_cell_no_tick(AIR, 0, 0);
-            return true;
-        }
+//     if cell.identity == CT::Life {
+//         // Rule 1: Any live cell with fewer than two live neighbours dies, as if caused by underpopulation.
+//         if neighbours < 2 {
+//             ctrl.set_rel_cell_no_tick(AIR, 0, 0);
+//             return true;
+//         }
 
-        // Rule 2: Any live cell with two or three live neighbours lives on to the next generation.
-        if neighbours == 2 || neighbours == 3 {
-            return true;
-        }
+//         // Rule 2: Any live cell with two or three live neighbours lives on to the next generation.
+//         if neighbours == 2 || neighbours == 3 {
+//             return true;
+//         }
 
-        // Rule 3: Any live cell with more than three live neighbours dies, as if by overpopulation.
-        if neighbours > 3 {
-            ctrl.set_rel_cell_no_tick(AIR, 0, 0);
-            return true;
-        }
-    }
-    //  else {
-    //     // Rule 4: Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
-    //     if neighbours == 3 {
-    //         ctrl.set_rel_cell_no_tick(LIFE, 0, 0);
-    //         return true;
-    //     }
-    // }
+//         // Rule 3: Any live cell with more than three live neighbours dies, as if by overpopulation.
+//         if neighbours > 3 {
+//             ctrl.set_rel_cell_no_tick(AIR, 0, 0);
+//             return true;
+//         }
+//     }
+//     //  else {
+//     //     // Rule 4: Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+//     //     if neighbours == 3 {
+//     //         ctrl.set_rel_cell_no_tick(LIFE, 0, 0);
+//     //         return true;
+//     //     }
+//     // }
 
-    // All other cells remain in the same state.
-    ctrl.set_rel_cell_no_tick(AIR, 0, 0);
-    false
-}
+//     // All other cells remain in the same state.
+//     ctrl.set_rel_cell_no_tick(AIR, 0, 0);
+//     false
+// }
 
 // if transfer_to != (0, 0) {
 //     let t = ctrl.get_rel_cell(transfer_to.0, transfer_to.1);
@@ -557,7 +557,7 @@ pub fn mass_thingy(mass_1: f32, mass_2: f32) -> f32 {
 }
 
 pub fn velocity_step(cell: Cell, mut ctrl: Controller) -> Controller {
-    if cell.velocity.y < cell.terminal_v && !ctrl.get_rel_cell(0, 1).identity.is_solid() {
+    if cell.velocity.y < cell.terminal_v && !ctrl.get_rel_cell(0, 1).is_solid() {
         let tps = ctrl.world.tps;
         let g = (1.0 / tps) as f32 * GRAVITY;
         ctrl.set_rel_cell(
@@ -585,7 +585,7 @@ pub fn velocity_step(cell: Cell, mut ctrl: Controller) -> Controller {
             let (dx, dy) = (x * neg_x, y * neg_y);
             let c = ctrl.get_rel_cell(dx, dy);
 
-            if c.identity.is_gas() {
+            if c.is_gas() {
                 viable = (dx, dy)
             } else {
                 // hit = true;
@@ -597,14 +597,14 @@ pub fn velocity_step(cell: Cell, mut ctrl: Controller) -> Controller {
     // if hit {
     //     let mut new_vel = cell.velocity;
     //     let mut tx = ctrl.get_rel_cell(viable.0 + neg_x, viable.1);
-    //     if tx.identity.is_solid() {
+    //     if tx.is_solid() {
     //         new_vel.x /= 2.0;
     //         tx.velocity.x = new_vel.x;
     //         ctrl.set_rel_cell(tx, viable.0 + neg_x, viable.1);
     //     }
 
     //     let mut ty = ctrl.get_rel_cell(viable.0, viable.1 + neg_y);
-    //     if ty.identity.is_solid() {
+    //     if ty.is_solid() {
     //         new_vel.y /= 2.0;
     //         ty.velocity.y = new_vel.y;
     //         ctrl.set_rel_cell(ty, viable.0, viable.1 + neg_y);

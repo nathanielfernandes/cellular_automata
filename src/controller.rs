@@ -80,7 +80,7 @@ impl<'sandy> Controller<'sandy> {
         // self.world.cells[i].tick = !self.world.tick;
         // self.world.cells[i].has_moved = true;
 
-        self.wake_cells(x, y);
+        // self.wake_cells(x, y);
     }
 
     pub fn swap_rel_cells(&mut self, delta_x: i32, delta_y: i32) {

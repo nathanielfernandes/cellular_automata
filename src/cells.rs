@@ -53,7 +53,7 @@ pub struct Cell {
 }
 
 impl Cell {
-    pub fn new(identity: CT, tick: bool, active: bool, velocity: Vec2) -> Self {
+    pub fn new(identity: CT, tick: bool, active: bool, _velocity: Vec2) -> Self {
         Cell {
             identity,
             health: if identity == CT::Air {
@@ -92,12 +92,19 @@ impl Cell {
     }
 
     pub fn step(&self, ctrl: Controller) {
-        match self.state {
-            State::Gas => gas_step(*self, ctrl),
-            State::Solid => solid_step(*self, ctrl),
-            State::Liquid => liquid_step(*self, ctrl),
-            State::Static => false,
+        match self.identity {
+            CT::Air => solid_step(*self, ctrl),
+            CT::Fire => fire_step(*self, ctrl),
+            CT::Lava => lava_step(*self, ctrl),
+            _ => match self.state {
+                State::Gas => gas_step(*self, ctrl),
+                State::Solid => solid_step(*self, ctrl),
+                State::FallingSolid => falling_solid_step(*self, ctrl),
+                State::Liquid => liquid_step(*self, ctrl),
+                State::Static => false,
+            },
         };
+
         // self.identity.step(*self, check_cell);
     }
 
@@ -113,9 +120,9 @@ impl Cell {
     // }
 
     pub fn debug_draw(&self, x: i32, y: i32) {
-        if !self.active || self.identity.is_immovable() {
+        if !self.active || self.is_immovable() {
             self.identity.draw(x, y, *self)
-        } else if !self.identity.is_static() {
+        } else if !self.is_static() {
             draw_poly(x as f32 * SCALE, y as f32 * SCALE, 4, SSCALE, 45.0, GREEN);
         }
     }
@@ -125,7 +132,7 @@ impl Cell {
     }
 
     pub fn try_wake(&mut self) {
-        if !self.identity.is_static() && inertial_res_check(self.inertial_res) {
+        if !self.is_static() && inertial_res_check(self.inertial_res) {
             self.wake();
         }
     }
@@ -137,6 +144,36 @@ impl Cell {
     pub fn is_boiling(&self) -> bool {
         self.heat >= self.boiling_point
     }
+
+    pub fn is_immovable(&self) -> bool {
+        self.state == State::Solid || self.state == State::Static
+    }
+
+    pub fn is_solid(&self) -> bool {
+        self.state == State::Solid
+            || self.state == State::FallingSolid
+            || self.state == State::Static
+    }
+    pub fn is_liquid(&self) -> bool {
+        self.state == State::Liquid
+    }
+    pub fn is_gas(&self) -> bool {
+        self.state == State::Gas
+    }
+    pub fn is_static(&self) -> bool {
+        self.state == State::Static
+    }
+    pub fn is_emissive(&self) -> bool {
+        match self.identity {
+            CT::Fire => true,
+            CT::Smoke => true,
+            CT::Lava => true,
+            _ => false,
+        }
+    }
+    // pub fn check_state_change(&self) -> Cell {
+
+    // }
 
     pub fn force_boil(&self) -> Cell {
         return match self.identity {
@@ -181,7 +218,7 @@ impl CT {
         // }
 
         let a;
-        if cell.identity.is_gas() {
+        if cell.is_gas() {
             a = cell.health as f32 / cell.identity.get_health() as f32;
         } else {
             if cell.active && cell.identity != CT::Bedrock {

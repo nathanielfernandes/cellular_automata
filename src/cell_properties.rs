@@ -1,15 +1,16 @@
 use crate::constants::*;
-use crate::random_utils::{chance, random_color};
+use crate::random_utils::chance;
 use crate::CT;
 use macroquad::prelude::Vec4;
-use macroquad::{prelude::Color, rand};
+use macroquad::rand;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum State {
     Solid = 0,
-    Liquid = 1,
-    Gas = 2,
-    Static = 3,
+    FallingSolid = 1,
+    Liquid = 2,
+    Gas = 3,
+    Static = 4,
 }
 
 impl CT {
@@ -17,10 +18,10 @@ impl CT {
         match self {
             CT::Air => State::Gas,
             CT::Bedrock => State::Static,
-            CT::Sand => State::Solid,
+            CT::Sand => State::FallingSolid,
             CT::Water => State::Liquid,
             CT::Smoke => State::Gas,
-            CT::GunPowder => State::Solid,
+            CT::GunPowder => State::FallingSolid,
             CT::Fire => State::Gas,
             CT::Oil => State::Liquid,
             CT::Wood => State::Solid,
@@ -167,9 +168,9 @@ impl CT {
     }
     pub fn get_flammability(&self) -> f32 {
         match self {
-            CT::Smoke => 0.00000000001,
+            CT::Smoke => 0.000000001,
             CT::GunPowder => 1.0,
-            CT::Fire => 0.00000000001,
+            CT::Fire => 0.000000001,
             CT::Oil => 0.9,
             CT::Wood => 1.0,
             _ => 0.0,
@@ -230,8 +231,8 @@ impl CT {
             CT::Smoke => 0.4,
             CT::Lava => 0.9,
             CT::Water => 1.0,
-            CT::Oil => 0.2,
-            CT::Wood => 0.5,
+            CT::Oil => 0.6,
+            CT::Wood => 0.8,
             CT::GunPowder => 0.8,
             CT::Air => 0.4,
             _ => 0.0,

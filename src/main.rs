@@ -16,8 +16,8 @@ use macroquad::prelude::*;
 fn window_conf() -> Conf {
     Conf {
         window_title: "Cellular Automata".to_owned(),
-        window_width: 1920,
-        window_height: 1080,
+        window_width: 1000,
+        window_height: 1000,
         ..Default::default()
     }
 }
@@ -60,7 +60,7 @@ async fn main() {
     let mut pause = false;
     let mut skip = false;
 
-    let mut tps: f64 = 120.0;
+    let mut tps: f64 = 60.0;
     // let mut last_time = 0.0_f64;
     // let mut last_pos: Vec2 = Vec2::ZERO;
 

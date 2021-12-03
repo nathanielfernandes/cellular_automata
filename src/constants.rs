@@ -2,7 +2,7 @@ use crate::{cell_properties::State, cells::*};
 use glam::const_vec4;
 use macroquad::prelude::*;
 
-pub const SCALE: f32 = 10.0;
+pub const SCALE: f32 = 5.0;
 pub const SSCALE: f32 = 0.7071067812 * SCALE;
 
 pub const SKY: Vec4 = const_vec4!([209.0 / 255.0, 231.0 / 255.0, 255.0 / 255.0, 1.0]);
@@ -54,7 +54,7 @@ pub static AIR: Cell = Cell {
     boiling_point: 1000000.0,
     melting_point: 1000000.0,
     conductivity: 0.4,
-    state: State::Solid,
+    state: State::Gas,
 };
 
 pub static LIFE: Cell = Cell {
