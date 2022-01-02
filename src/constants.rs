@@ -107,17 +107,19 @@ pub const FRAGMENT_SHADER: &str = "
     varying vec4 color;
     varying vec2 uv;
     uniform sampler2D Texture;
-        
+    
+    const float Pi = 6.28318530718;
+
     void main() {
         vec4 Color = texture2D(Texture, uv);
         // if(Color[3] != 0.0){
 
-        float Pi = 6.28318530718; // Pi*2
+        // float Pi = 6.28318530718; // Pi*2
 
         // GAUSSIAN BLUR SETTINGS {{{
-        float Directions = 16.0; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
-        float Quality = 4.0; // BLUR QUALITY (Default 4.0 - More is better but slower)
-        float Size = 10.0; // BLUR SIZE (Radius)
+        const float Directions = 16.0; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
+        const float Quality = 4.0; // BLUR QUALITY (Default 4.0 - More is better but slower)
+        const float Size = 10.0; // BLUR SIZE (Radius)
         // GAUSSIAN BLUR SETTINGS }}}
     
         vec2 Radius = Size / vec2(1000.0, 1000.0);

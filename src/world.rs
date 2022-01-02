@@ -68,6 +68,7 @@ impl World {
             },
         )
         .unwrap();
+
         let camera = Camera2D {
             render_target: Some(shader_buffer),
             ..Camera2D::from_display_rect(Rect::new(0.0, 0.0, screen_width(), screen_height())) // ..Default::default()
