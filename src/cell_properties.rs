@@ -135,7 +135,7 @@ impl CT {
 
     pub fn is_static(&self) -> bool {
         match self {
-            CT::Air => false,
+            CT::Air => true,
             CT::Bedrock => true,
             _ => false,
         }
@@ -146,6 +146,7 @@ impl CT {
             CT::Air => true,
             CT::Bedrock => true,
             CT::Wood => true,
+            CT::Stone => true,
             _ => false,
         }
     }
@@ -216,8 +217,8 @@ impl CT {
     pub fn get_heat(&self) -> f32 {
         match self {
             CT::Fire => 400.0,
-            CT::Smoke => 101.0,
-            CT::Lava => 3000.0,
+            CT::Smoke => 100.0,
+            CT::Lava => 2500.0,
             CT::Water => 28.0,
             CT::Oil => 40.0,
             CT::Wood => 10.0,

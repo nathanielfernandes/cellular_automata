@@ -93,7 +93,7 @@ impl Cell {
 
     pub fn step(&self, ctrl: Controller) {
         match self.identity {
-            CT::Air => solid_step(*self, ctrl),
+            CT::Air => false, //solid_step(*self, ctrl),
             CT::Fire => fire_step(*self, ctrl),
             CT::Lava => lava_step(*self, ctrl),
             _ => match self.state {
@@ -145,6 +145,14 @@ impl Cell {
         self.heat >= self.boiling_point
     }
 
+    pub fn is_melting(&self) -> bool {
+        self.heat >= self.melting_point
+    }
+
+    pub fn is_freezing(&self) -> bool {
+        self.heat < self.melting_point
+    }
+
     pub fn is_immovable(&self) -> bool {
         self.state == State::Solid || self.state == State::Static
     }
@@ -185,9 +193,33 @@ impl Cell {
         };
     }
 
+    pub fn force_melt(&self) -> Cell {
+        return match self.identity {
+            CT::Wood => Cell::new(CT::Fire, self.tick, true, Vec2::ZERO),
+            // CT::Lava =>
+            _ => *self,
+        };
+    }
+
+    pub fn force_freeze(&self) -> Cell {
+        return match self.identity {
+            CT::Lava => Cell {
+                heat: self.heat,
+                ..Cell::new(CT::Stone, self.tick, true, Vec2::ZERO)
+            },
+
+            // ,
+            _ => *self,
+        };
+    }
+
     pub fn heat_transform(&self) -> Cell {
         if self.is_boiling() {
             return self.force_boil();
+        } else if self.is_melting() {
+            return self.force_melt();
+        } else if self.is_freezing() {
+            return self.force_freeze();
         }
 
         *self
@@ -213,9 +245,9 @@ impl CT {
     // pub fn bloom(&self)
 
     pub fn draw(&self, x: i32, y: i32, cell: Cell) {
-        // if cell.identity == CT::Air {
-        //     return;
-        // }
+        if cell.identity == CT::Air {
+            return;
+        }
 
         let a;
         if cell.is_gas() {

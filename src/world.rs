@@ -160,18 +160,22 @@ impl World {
 
         if !pause {
             let cell = self.get_cell(x, y);
-            apply_heat(cell, Controller { x, y, world: self });
+            if !cell.is_static() {
+                apply_heat(cell, Controller { x, y, world: self });
 
-            let cell = self.get_cell(x, y);
-            if cell.is_boiling() {
+                let cell = self.get_cell(x, y).heat_transform();
+
+                // if cell.is_boiling() {
                 let i = self.get_idx(x, y);
-                self.cells[i] = cell.force_boil();
-            }
+                self.cells[i] = cell;
+                // self.cells[i] = cell.force_boil();
+                // }
 
-            let cell = self.get_cell(x, y);
+                // let cell = self.get_cell(x, y);
 
-            if !cell.is_static() && cell.active && self.tick != cell.tick {
-                cell.step(Controller { x, y, world: self });
+                if cell.active && self.tick != cell.tick {
+                    cell.step(Controller { x, y, world: self });
+                }
             }
         }
 
