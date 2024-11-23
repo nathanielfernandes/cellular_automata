@@ -7,7 +7,7 @@ This project was heavily inspired by Noita and The Powder Toy.
 Every cell on screen has a simple set of rules that it follows every game tick. This sandbox lets you place many different types of cells and observe their emergent behaviors.
 
 <div style="display: flex; flex-direction: column; justify-content: center; text-align: center">
-    <img src="https://cdn.discordapp.com/attachments/792686378366009354/927316076868550676/unknown.png">
+    <img src="./docs/preview.png">
     <p>
         <b>You can try out this demo <a href="https://nathanielfernandes.github.io/cellular_automata">here</a></b>
     </p>
